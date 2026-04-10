@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yousef Engine AI | المحرك الأسطوري</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; color: var(--primary); }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 15px;
+            border-radius: 15px;
+            line-height: 1.6;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ai-msg {
+            align-self: flex-start;
+            background: var(--card);
+            border-right: 4px solid var(--primary);
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            background: var(--primary);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: #1e293b;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #334155;
+        }
+
+        input {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        button {
+            padding: 0 25px;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { opacity: 0.8; transform: scale(1.05); }
+        button:disabled { background: #64748b; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>YOUSEF ENGINE AI</h1>
+    </header>
+
+    <div id="chat-container">
+        <div class="message ai-msg">مرحباً يوسف! أنا محركك الذكي الجديد المعتمد على Gemini Flash. اسألني أي شيء..</div>
+    </div>
+
+    <form id="chat-form" class="input-area">
+        <input type="text" id="user-input" placeholder="اكتب سؤالك هنا يا بطل..." required autocomplete="off">
+        <button type="submit" id="send-btn">إرسال</button>
+    </form>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+        const sendBtn = document.getElementById('send-btn');
+
+        // المفتاح الجديد والرابط المعتمد من Curl
+        const API_KEY = "AIzaSyCi4JkYK0UdAGuJ-IgE1YESg-CdjybAQEI";
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // تعطيل الزر وإضافة رسالة المستخدم
+            sendBtn.disabled = true;
+            addMessage(text, 'user');
+            userInput.value = '';
+
+            // إضافة رسالة "جاري التفكير"
+            const loadingMsg = addMessage("جاري التفكير في الرد...", "ai");
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': API_KEY // الطريقة التي طلبها Curl
+                    },
+                    body: JSON.stringify({
+                        "contents": [{
+                            "parts": [{ "text": text }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.candidates && data.candidates[0].content) {
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    loadingMsg.innerText = aiResponse;
+                } else if (data.error) {
+                    loadingMsg.innerText = "خطأ من جوجل: " + data.error.message;
+                } else {
+                    loadingMsg.innerText = "وصل رد غير معروف، تفقد الـ Console.";
+                    console.log("Response Data:", data);
+                }
+
+            } catch (error) {
+                loadingMsg.innerText = "فشل الاتصال: " + error.message;
+            } finally {
+                sendBtn.disabled = false;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            div.innerText = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+    </script>
+</body>
+</html>
